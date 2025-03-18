@@ -1,0 +1,154 @@
+<!DOCTYPE html>
+<html lang="th">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Admin Panel</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            margin: 20px;
+            background-color: #f9f9f9;
+        }
+        .admin-container {
+            width: 50%;
+            margin: auto;
+            background: white;
+            padding: 20px;
+            border-radius: 10px;
+            box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
+        }
+        label, input, select, button {
+            display: block;
+            width: 100%;
+            margin-bottom: 10px;
+            padding: 10px;
+            font-size: 16px;
+        }
+        button {
+            background-color: #4CAF50;
+            color: white;
+            border: none;
+            cursor: pointer;
+            border-radius: 5px;
+        }
+        button:hover {
+            background-color: #45a049;
+        }
+    </style>
+</head>
+<body>
+
+    <h2>จัดการสินค้า</h2>
+
+    <div class="admin-container">
+        <h3>เพิ่มสินค้าใหม่</h3>
+        <label>ชื่อสินค้า</label>
+        <input type="text" id="newProductName">
+
+        <label>ราคา (THB)</label>
+        <input type="number" id="newProductPrice">
+
+        <label>จำนวนเริ่มต้น</label>
+        <input type="number" id="newProductStock">
+
+        <button onclick="addNewProduct()">เพิ่มสินค้า</button>
+    </div>
+
+    <div class="admin-container">
+        <h3>เพิ่มสต็อกสินค้า</h3>
+        <label>เลือกสินค้า</label>
+        <select id="productSelect"></select>
+
+        <label>จำนวนที่ต้องการเพิ่ม</label>
+        <input type="number" id="stockAmount">
+
+        <button onclick="addStockToProduct()">เพิ่มสต็อก</button>
+    </div>
+
+    <div class="admin-container">
+        <button onclick="goToStore()">🔙 กลับไปหน้าหลัก</button>
+    </div>
+
+    <script>
+        const firebaseUrl = "https://qwwq-33a6d-default-rtdb.asia-southeast1.firebasedatabase.app/products.json";
+
+        async function loadProductOptions() {
+            let response = await fetch(firebaseUrl);
+            let products = await response.json();
+            const productSelect = document.getElementById("productSelect");
+            productSelect.innerHTML = "";
+
+            if (products) {
+                Object.keys(products).forEach(id => {
+                    let option = document.createElement("option");
+                    option.value = id;
+                    option.textContent = products[id].name;
+                    productSelect.appendChild(option);
+                });
+            }
+        }
+
+        async function addNewProduct() {
+            const name = document.getElementById("newProductName").value;
+            const price = document.getElementById("newProductPrice").value;
+            const stock = document.getElementById("newProductStock").value;
+
+            if (!name || price <= 0 || stock < 0) {
+                alert("❌ กรุณากรอกข้อมูลให้ครบ!");
+                return;
+            }
+
+            let newProduct = {
+                name,
+                price: Number(price),
+                stock: Number(stock),
+                visible: true
+            };
+
+            let response = await fetch(firebaseUrl, {
+                method: "POST",
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify(newProduct)
+            });
+
+            if (response.ok) {
+                alert("✅ เพิ่มสินค้าใหม่สำเร็จ!");
+                window.location.reload();
+            } else {
+                alert("❌ มีบางอย่างผิดพลาด");
+            }
+        }
+
+        async function addStockToProduct() {
+            const productId = document.getElementById("productSelect").value;
+            const amount = Number(document.getElementById("stockAmount").value);
+
+            if (amount <= 0) {
+                alert("❌ กรุณาใส่จำนวนที่ถูกต้อง!");
+                return;
+            }
+
+            let response = await fetch(firebaseUrl);
+            let products = await response.json();
+            let newStock = products[productId].stock + amount;
+
+            await fetch(`https://qwwq-33a6d-default-rtdb.asia-southeast1.firebasedatabase.app/products/${productId}.json`, {
+                method: "PATCH",
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify({ stock: newStock })
+            });
+
+            alert("✅ เพิ่มสต็อกสำเร็จ!");
+            window.location.reload();
+        }
+
+        function goToStore() {
+            window.location.href = "index.html";
+        }
+
+        window.onload = loadProductOptions;
+    </script>
+
+</body>
+</html>
